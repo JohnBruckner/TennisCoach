@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Tennis Coach</string>
+    <string name="title_record">Record</string>
+    <string name="text_record">Record new stroke</string>
+    <string name="title_history">History</string>
+    <string name="text_history">View previous stroke</string>
+    <string name="title_connect">Connect</string>
+    <string name="title_start">Start</string>
+    <string name="title_stop">Stop</string>
+    <string name="title_reset">Reset</string>
+</resources>
