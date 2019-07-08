@@ -37,7 +37,8 @@ import io.reactivex.disposables.Disposable;
 public class MainActivity extends AppCompatActivity {
     private static int PERMISSION_REQUEST_LOCATION_COARSE = 0;
 
-    private static final String ORIENT_BLE_ADDRESS = "F2:6D:63:1F:17:33"; // test device
+//    private static final String ORIENT_BLE_ADDRESS = "F2:6D:63:1F:17:33"; // test device
+    private static final String ORIENT_BLE_ADDRESS = "D4:35:E6:44:FB:AC";
     public static final String ORIENT1_BLE_ADDRESS = "E1:66:70:34:89:72";
     public static final String ORIENT2_BLE_ADDRESS = "E3:CF:82:7B:BF:77";
 
@@ -132,6 +133,11 @@ public class MainActivity extends AppCompatActivity {
                     PERMISSION_REQUEST_LOCATION_COARSE);
         }
 
+        packetData = ByteBuffer.allocate(180);
+        packetData.order(ByteOrder.LITTLE_ENDIAN);
+
+        rxBleClient = RxBleClient.create(this);
+
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -186,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("MainActivity", "Caught IOException: " + e.getMessage());
                 }
                 start.setEnabled(true);
+                reset.setEnabled(false);
             }
         });
 
@@ -204,22 +211,14 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("MainActivity", "Caught IOException: " + e.getMessage());
                 }
                 start.setEnabled(true);
+                reset.setEnabled(false
+                );
             }
         });
 
         connect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//            rb = findViewById(selectedId);
-//            characteristic_str = rb.getText().toString();
-//
-//            if (characteristic_str.compareTo("Raw") == 0) {
-//                raw = true;
-//            } else if (characteristic_str.compareTo("Raw Multiple Devices") == 0) {
-//                raw = true;
-//                multi = true;
-//            }
-
                 scanSubscription = rxBleClient.scanBleDevices(
                         new ScanSettings.Builder()
                                 // .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY) // change if needed
@@ -281,11 +280,6 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
-        packetData = ByteBuffer.allocate(180);
-        packetData.order(ByteOrder.LITTLE_ENDIAN);
-
-        rxBleClient = RxBleClient.create(this);
     }
 
     private void massSetVisibility(int visibility) {
@@ -328,8 +322,8 @@ public class MainActivity extends AppCompatActivity {
                             //Log.i("OrientAndroid", "Received " + bytes.length + " bytes");
                             if (!connected) {
                                 runOnUiThread(() -> {
-                                    //Toast.makeText(ctx, "Receiving sensor data from " + Integer.toString(n),
-                                    //        Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(ctx, "Receiving sensor data from " + Integer.toString(n),
+                                            Toast.LENGTH_SHORT).show();
                                     if (n == 0) {
                                         connected = true;
                                         start.setEnabled(true);
@@ -389,9 +383,10 @@ public class MainActivity extends AppCompatActivity {
                     Double.toString(dy),
                     Double.toString(dz),
             };
+
             writer.writeNext(entries);
 
-            if (counter % 12 == 0) {
+            if (counter % 1 == 0) {
                 long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
                 int total_secs = (int) elapsed_time / 1000;
                 int s = total_secs % 60;
@@ -411,7 +406,7 @@ public class MainActivity extends AppCompatActivity {
                 Long elapsed_capture_time = System.currentTimeMillis() - capture_started_timestamp;
                 float connected_secs = elapsed_capture_time / 1000.f;
                 freq = counter / connected_secs;
-                //Log.i("OrientAndroid", "Packet count: " + Integer.toString(n) + ", Freq: " + Float.toString(freq));
+//                Log.i("OrientAndroid", "Packet count: " + Integer.toString(n) + ", Freq: " + Float.toString(freq));
 
                 String time_str = m_str + ":" + s_str;
 
@@ -468,7 +463,7 @@ public class MainActivity extends AppCompatActivity {
             };
             writer.writeNext(entries);
 
-            if (counter % 12 == 0) {
+            if (counter % 1 == 0) {
                 long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
                 int total_secs = (int) elapsed_time / 1000;
                 int s = total_secs % 60;
@@ -548,7 +543,7 @@ public class MainActivity extends AppCompatActivity {
                 };
                 writer.writeNext(entries);
 
-                if (counter % 1 == 0) {
+                if (counter % 12 == 0) {
                     long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
                     int total_secs = (int) elapsed_time / 1000;
                     int s = total_secs % 60;
