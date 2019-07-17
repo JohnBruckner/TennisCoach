@@ -23,6 +23,9 @@ import com.polidea.rxandroidble2.RxBleClient;
 import com.polidea.rxandroidble2.RxBleDevice;
 import com.polidea.rxandroidble2.scan.ScanSettings;
 
+import net.seninp.jmotif.sax.SAXProcessor;
+import net.seninp.jmotif.sax.alphabet.NormalAlphabet;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -34,11 +37,11 @@ import java.util.UUID;
 
 import io.reactivex.disposables.Disposable;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AsyncResponse {
     private static int PERMISSION_REQUEST_LOCATION_COARSE = 0;
 
-//    private static final String ORIENT_BLE_ADDRESS = "F2:6D:63:1F:17:33"; // test device
-    private static final String ORIENT_BLE_ADDRESS = "D4:35:E6:44:FB:AC";
+    private static final String ORIENT_BLE_ADDRESS = "F2:6D:63:1F:17:33"; // test device
+    //    private static final String ORIENT_BLE_ADDRESS = "D4:35:E6:44:FB:AC";
     public static final String ORIENT1_BLE_ADDRESS = "E1:66:70:34:89:72";
     public static final String ORIENT2_BLE_ADDRESS = "E3:CF:82:7B:BF:77";
 
@@ -77,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
     private File file;
     private boolean logging = false;
 
+    private Integer classification = -1;
+    private Double rating = 0.;
+
     private String fname = new String();
     private boolean raw = true; // TODO: Remove
     private boolean multi = false; // TODO: Remove
@@ -101,6 +107,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ctx = this;
+        Activity a = (Activity) ctx;
+
+        ClassificationService classificationService = new ClassificationService(ctx);
+        classificationService.classificationDelegate = this;
+
         setContentView(R.layout.activity_main);
         BottomNavigationView navView = findViewById(R.id.nav_view);
         navView.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
@@ -111,8 +124,8 @@ public class MainActivity extends AppCompatActivity {
         reset = findViewById(R.id.reset_button);
         clock = findViewById(R.id.TimeText);
 
-        ctx = this;
-        Activity a = (Activity) ctx;
+        NormalAlphabet na = new NormalAlphabet();
+        SAXProcessor sp = new SAXProcessor();
 
         File folder = new File(Environment.getExternalStorageDirectory() +
                 File.separator + "TCSavedData");
@@ -167,7 +180,6 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("MainActivity", "Caught IOException: " + e.getMessage());
                 }
 
-
                 writer.writeNext(entries);
 
                 logging = true;
@@ -175,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
                 counter = 0;
                 Toast.makeText(ctx, "Start logging", Toast.LENGTH_SHORT).show();
                 stop.setEnabled(true);
-
             }
         });
 
@@ -191,6 +202,9 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     Log.e("MainActivity", "Caught IOException: " + e.getMessage());
                 }
+
+                classificationService.execute(fname);
+
                 start.setEnabled(true);
                 reset.setEnabled(false);
             }
@@ -463,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
             };
             writer.writeNext(entries);
 
-            if (counter % 1 == 0) {
+            if (counter % 12 == 0) {
                 long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
                 int total_secs = (int) elapsed_time / 1000;
                 int s = total_secs % 60;
@@ -581,4 +595,13 @@ public class MainActivity extends AppCompatActivity {
         counter += 1;
     }
 
+    @Override
+    public void classificationFinish(Integer classification) {
+        this.classification = classification;
+    }
+
+    @Override
+    public void ratingFinish(Double result) {
+        this.rating = result;
+    }
 }
