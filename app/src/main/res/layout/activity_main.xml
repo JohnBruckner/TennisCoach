@@ -12,12 +12,12 @@
         android:layout_width="154dp"
         android:layout_height="38dp"
         android:layout_marginStart="100dp"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="28dp"
         android:layout_marginEnd="8dp"
         android:text="@string/text_record"
         android:textAlignment="center"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.03"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -132,5 +132,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/TimeText"
         app:layout_constraintVertical_bias="0.166" />
+
+    <ImageButton
+        android:id="@+id/imageButton"
+        android:layout_width="319dp"
+        android:layout_height="191dp"
+        android:layout_marginBottom="36dp"
+        app:layout_constraintBottom_toTopOf="@+id/TimeText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@color/colorPrimary" />
+
+    <TextView
+        android:id="@+id/score"
+        android:layout_width="65dp"
+        android:layout_height="17dp"
+        android:layout_marginStart="88dp"
+        android:layout_marginBottom="36dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/TimeText"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/classification"
+        android:layout_width="61dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="88dp"
+        android:layout_marginBottom="8dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/score"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

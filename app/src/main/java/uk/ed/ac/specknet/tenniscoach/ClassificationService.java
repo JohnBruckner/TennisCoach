@@ -5,6 +5,8 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.Log;
 
+import com.opencsv.CSVReader;
+
 import net.seninp.jmotif.sax.SAXProcessor;
 import net.seninp.jmotif.sax.TSProcessor;
 import net.seninp.jmotif.sax.alphabet.NormalAlphabet;
@@ -12,6 +14,9 @@ import net.seninp.jmotif.sax.alphabet.NormalAlphabet;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
@@ -23,12 +28,12 @@ public class ClassificationService extends AsyncTask<String, Void, Integer> {
     private static final Integer NR_SAX_SYMBOLS = 10;
     private static final Integer N_THRESHOLD = 0;
 
-    private static final String fServe1 = Environment.getExternalStorageState() + File.separator + "serve1.csv";
-    private static final String fServe2 = Environment.getExternalStorageState() + File.separator + "serve2.csv";
-    private static final String fServe3 = Environment.getExternalStorageState() + File.separator + "serve3.csv";
-    private static final String fForehand1 = Environment.getExternalStorageState() + File.separator + "forehand1.csv";
-    private static final String fForehand2 = Environment.getExternalStorageState() + File.separator + "forehand2.csv";
-    private static final String fForehand3 = Environment.getExternalStorageState() + File.separator + "forehand3.csv";
+    private static final String fServe1 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator +  "serve1.csv";
+    private static final String fServe2 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator + "serve2.csv";
+    private static final String fServe3 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator + "serve3.csv";
+    private static final String fForehand1 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator + "forehand1.csv";
+    private static final String fForehand2 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator + "forehand2.csv";
+    private static final String fForehand3 = Environment.getExternalStorageDirectory() + File.separator + "TCSavedData" + File.separator + "forehand3.csv";
 
     private double[] accelYServe1;
     private double[] accelYServe2;
@@ -53,12 +58,12 @@ public class ClassificationService extends AsyncTask<String, Void, Integer> {
     public ClassificationService(Context context) {
         this.mContext = new WeakReference<>(context);
         try {
-            this.accelYServe1 = TSProcessor.readFileColumn(fServe1, 5, 0);
-            this.accelYServe2 = TSProcessor.readFileColumn(fServe2, 5, 0);
-            this.accelYServe3 = TSProcessor.readFileColumn(fServe3, 5, 0);
-            this.accelYForehand1 = TSProcessor.readFileColumn(fForehand1, 5, 0);
-            this.accelYForehand2 = TSProcessor.readFileColumn(fForehand2, 5, 0);
-            this.accelYForehand3 = TSProcessor.readFileColumn(fForehand3, 5, 0);
+            this.accelYServe1 = readCSVColumn(fServe1, 5);
+            this.accelYServe2 = readCSVColumn(fServe2, 5);
+            this.accelYServe3 = readCSVColumn(fServe3, 5);
+            this.accelYForehand1 = readCSVColumn(fForehand1, 5);
+            this.accelYForehand2 = readCSVColumn(fForehand2, 5);
+            this.accelYForehand3 = readCSVColumn(fForehand3, 5);
         } catch (Exception e) {
             Log.e("Classification", "Caught Exception: " + e.getMessage());
 
@@ -100,7 +105,7 @@ public class ClassificationService extends AsyncTask<String, Void, Integer> {
         String saxNewStroke;
 
         try {
-            newStroke = ArrayUtils.toObject(TSProcessor.readFileColumn(strings[0], 6, 0));
+            newStroke = ArrayUtils.toObject(readCSVColumn(strings[0], 5));
         } catch (Exception e) {
             Log.e("Classification", "Caught Exception: " + e.getMessage());
 
@@ -193,9 +198,35 @@ public class ClassificationService extends AsyncTask<String, Void, Integer> {
         return Math.sqrt(sum);
     }
 
+    protected double[] readCSVColumn(String fname, int column) {
+        try {
+
+            CSVReader reader = new CSVReader(new FileReader(fname));
+            ArrayList<Double> data = new ArrayList<>();
+
+            String[] nextLine;
+
+            nextLine = reader.readNext(); //Read file header
+
+            while ((nextLine = reader.readNext()) != null) {
+                String entry = nextLine[column];
+                data.add(Double.parseDouble(entry));
+
+            }
+
+            return ArrayUtils.toPrimitive(data.toArray(new Double[data.size()]));
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     @Override
     protected void onPostExecute(Integer integer) {
         classificationDelegate.classificationFinish(integer);
-
     }
 }

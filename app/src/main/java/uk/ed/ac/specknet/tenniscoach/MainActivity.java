@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     private Button stop;
     private Button reset;
     private TextView clock;
+    private TextView strokeType;
+    private TextView score;
 
     private Button[] buttons;
 
@@ -69,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     private boolean receivingO1 = false;
     private boolean receivingO2 = false;
 
+    private AsyncResponse mainActivity;
 
     private Long capture_started_timestamp = null;
     boolean connected = false;
@@ -111,8 +114,7 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         ctx = this;
         Activity a = (Activity) ctx;
 
-        ClassificationService classificationService = new ClassificationService(ctx);
-        classificationService.classificationDelegate = this;
+        mainActivity = this;
 
         setContentView(R.layout.activity_main);
         BottomNavigationView navView = findViewById(R.id.nav_view);
@@ -123,6 +125,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         stop = findViewById(R.id.stop_button);
         reset = findViewById(R.id.reset_button);
         clock = findViewById(R.id.TimeText);
+        strokeType = findViewById(R.id.classification);
+        score = findViewById(R.id.score);
 
         NormalAlphabet na = new NormalAlphabet();
         SAXProcessor sp = new SAXProcessor();
@@ -159,10 +163,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                 start.setEnabled(false);
                 reset.setEnabled(true);
 
-
                 // make a new filename based on the start timestamp
                 String file_ts = new SimpleDateFormat("yyyyMMdd'T'HHmmss").format(new Date());
-                fname = file_ts;
 
                 String[] entries = null;
                 if (raw) {
@@ -172,6 +174,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                     file = new File(path, "Orient_quat_" + file_ts + ".csv");
                     entries = "device#timestamp#packet_seq#sample_seq#quat_w#quat_x#quat_y#quat_z".split("#");
                 }
+
+                fname = file.getAbsolutePath();
 
 
                 try {
@@ -203,6 +207,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                     Log.e("MainActivity", "Caught IOException: " + e.getMessage());
                 }
 
+                ClassificationService classificationService = new ClassificationService(ctx);
+                classificationService.classificationDelegate = mainActivity;
                 classificationService.execute(fname);
 
                 start.setEnabled(true);
@@ -442,76 +448,80 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         packetData.put(bytes);
         packetData.position(0);
 
-        float accel_x = packetData.getShort() / 1024.f;  // integer part: 6 bits, fractional part 10 bits, so div by 2^10
-        float accel_y = packetData.getShort() / 1024.f;
-        float accel_z = packetData.getShort() / 1024.f;
+        // 180 bytes in a packet, 18 bytes per reading.
+        // There are 10 readings in a a packet
+        for (int i = 0; i < 10; i++) {
+            float accel_x = packetData.getShort() / 1024.f;  // integer part: 6 bits, fractional part 10 bits, so div by 2^10
+            float accel_y = packetData.getShort() / 1024.f;
+            float accel_z = packetData.getShort() / 1024.f;
 
-        float gyro_x = packetData.getShort() / 32.f;  // integer part: 11 bits, fractional part 5 bits, so div by 2^5
-        float gyro_y = packetData.getShort() / 32.f;
-        float gyro_z = packetData.getShort() / 32.f;
+            float gyro_x = packetData.getShort() / 32.f;  // integer part: 11 bits, fractional part 5 bits, so div by 2^5
+            float gyro_y = packetData.getShort() / 32.f;
+            float gyro_z = packetData.getShort() / 32.f;
 
-        float mag_x = packetData.getShort() / 16.f;  // integer part: 12 bits, fractional part 4 bits, so div by 2^4
-        float mag_y = packetData.getShort() / 16.f;
-        float mag_z = packetData.getShort() / 16.f;
+            float mag_x = packetData.getShort() / 16.f;  // integer part: 12 bits, fractional part 4 bits, so div by 2^4
+            float mag_y = packetData.getShort() / 16.f;
+            float mag_z = packetData.getShort() / 16.f;
 
-        //Log.i("OrientAndroid", "Accel:(" + accel_x + ", " + accel_y + ", " + accel_z + ")");
-        //Log.i("OrientAndroid", "Gyro:(" + gyro_x + ", " + gyro_y + ", " + gyro_z + ")");
-        //if (mag_x != 0f || mag_y != 0f || mag_z != 0f)
-        //Log.i("OrientAndroid", "Mag:(" + mag_x + ", " + mag_y + ", " + mag_z + ")");
+            //Log.i("OrientAndroid", "Accel:(" + accel_x + ", " + accel_y + ", " + accel_z + ")");
+            //Log.i("OrientAndroid", "Gyro:(" + gyro_x + ", " + gyro_y + ", " + gyro_z + ")");
+            //if (mag_x != 0f || mag_y != 0f || mag_z != 0f)
+            //Log.i("OrientAndroid", "Mag:(" + mag_x + ", " + mag_y + ", " + mag_z + ")");
 
-        if (logging) {
-            //String[] entries = "first#second#third".split("#");
-            String[] entries = {Integer.toString(0),
-                    Long.toString(ts),
-                    Integer.toString(counter),
-                    Integer.toString(0),
-                    Float.toString(accel_x),
-                    Float.toString(accel_y),
-                    Float.toString(accel_z),
-                    Float.toString(gyro_x),
-                    Float.toString(gyro_y),
-                    Float.toString(gyro_z),
-                    Float.toString(mag_x),
-                    Float.toString(mag_y),
-                    Float.toString(mag_z),
-            };
-            writer.writeNext(entries);
+            if (logging) {
+                //String[] entries = "first#second#third".split("#");
+                String[] entries = {Integer.toString(0),
+                        Long.toString(ts),
+                        Integer.toString(counter),
+                        Integer.toString(0),
+                        Float.toString(accel_x),
+                        Float.toString(accel_y),
+                        Float.toString(accel_z),
+                        Float.toString(gyro_x),
+                        Float.toString(gyro_y),
+                        Float.toString(gyro_z),
+                        Float.toString(mag_x),
+                        Float.toString(mag_y),
+                        Float.toString(mag_z),
+                };
+                writer.writeNext(entries);
 
-            if (counter % 12 == 0) {
-                long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
-                int total_secs = (int) elapsed_time / 1000;
-                int s = total_secs % 60;
-                int m = total_secs / 60;
+                if (counter % 12 == 0) {
+                    long elapsed_time = System.currentTimeMillis() - capture_started_timestamp;
+                    int total_secs = (int) elapsed_time / 1000;
+                    int s = total_secs % 60;
+                    int m = total_secs / 60;
 
-                String m_str = Integer.toString(m);
-                if (m_str.length() < 2) {
-                    m_str = "0" + m_str;
+                    String m_str = Integer.toString(m);
+                    if (m_str.length() < 2) {
+                        m_str = "0" + m_str;
+                    }
+
+                    String s_str = Integer.toString(s);
+                    if (s_str.length() < 2) {
+                        s_str = "0" + s_str;
+                    }
+
+                    Long elapsed_capture_time = System.currentTimeMillis() - capture_started_timestamp;
+                    float connected_secs = elapsed_capture_time / 1000.f;
+                    freq = counter / connected_secs;
+                    //Log.i("OrientAndroid", "Packet count: " + Integer.toString(n) + ", Freq: " + Float.toString(freq));
+
+                    String time_str = m_str + ":" + s_str;
+
+                    String accel_str = "Accel: (" + accel_x + ", " + accel_y + ", " + accel_z + ")";
+                    String gyro_str = "Gyro: (" + gyro_x + ", " + gyro_y + ", " + gyro_z + ")";
+                    String freq_str = "Freq: " + freq;
+
+                    runOnUiThread(() -> {
+                        clock.setText(time_str);
+                    });
                 }
 
-                String s_str = Integer.toString(s);
-                if (s_str.length() < 2) {
-                    s_str = "0" + s_str;
-                }
-
-
-                Long elapsed_capture_time = System.currentTimeMillis() - capture_started_timestamp;
-                float connected_secs = elapsed_capture_time / 1000.f;
-                freq = counter / connected_secs;
-                //Log.i("OrientAndroid", "Packet count: " + Integer.toString(n) + ", Freq: " + Float.toString(freq));
-
-                String time_str = m_str + ":" + s_str;
-
-                String accel_str = "Accel: (" + accel_x + ", " + accel_y + ", " + accel_z + ")";
-                String gyro_str = "Gyro: (" + gyro_x + ", " + gyro_y + ", " + gyro_z + ")";
-                String freq_str = "Freq: " + freq;
-
-                runOnUiThread(() -> {
-                    clock.setText(time_str);
-                });
+                counter += 1;
             }
-
-            counter += 1;
         }
+
     }
 
     private void handleMultiRawPacket(final byte[] bytes, int n) {
@@ -598,10 +608,19 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     @Override
     public void classificationFinish(Integer classification) {
         this.classification = classification;
+        RatingService ratingService = new RatingService(ctx, classification);
+        ratingService.ratingDelegate = this;
+        ratingService.execute(fname);
     }
 
     @Override
     public void ratingFinish(Double result) {
         this.rating = result;
+        if (classification == 0) {
+            strokeType.setText("Serve");
+        } else {
+            strokeType.setText("Forehand");
+        }
+        score.setText(rating.toString());
     }
 }
