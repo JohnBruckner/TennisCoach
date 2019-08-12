@@ -4,13 +4,13 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.DashPathEffect;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -18,6 +18,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.androidplot.util.PixelUtils;
+import com.androidplot.xy.CatmullRomInterpolator;
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.SimpleXYSeries;
+import com.androidplot.xy.XYGraphWidget;
+import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.XYSeries;
 import com.opencsv.CSVWriter;
 import com.polidea.rxandroidble2.RxBleClient;
 import com.polidea.rxandroidble2.RxBleDevice;
@@ -31,13 +38,17 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.FieldPosition;
+import java.text.Format;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
 import io.reactivex.disposables.Disposable;
 
-public class MainActivity extends AppCompatActivity implements AsyncResponse {
+public class MainActivity extends Activity implements AsyncResponse {
     private static int PERMISSION_REQUEST_LOCATION_COARSE = 0;
 
     private static final String ORIENT_BLE_ADDRESS = "F2:6D:63:1F:17:33"; // test device
@@ -60,9 +71,6 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
 
     private Button[] buttons;
 
-    private RxBleDevice orient_device;
-    private RxBleDevice orient1_device;
-    private RxBleDevice orient2_device;
     private Disposable scanSubscription;
     private RxBleClient rxBleClient;
     private ByteBuffer packetData;
@@ -90,6 +98,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     private boolean raw = true; // TODO: Remove
     private boolean multi = false; // TODO: Remove
 
+    private XYPlot plot;
+
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
 
@@ -110,13 +120,13 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
         ctx = this;
         Activity a = (Activity) ctx;
 
         mainActivity = this;
 
-        setContentView(R.layout.activity_main);
         BottomNavigationView navView = findViewById(R.id.nav_view);
         navView.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
@@ -127,6 +137,9 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         clock = findViewById(R.id.TimeText);
         strokeType = findViewById(R.id.classification);
         score = findViewById(R.id.score);
+        plot = (XYPlot) findViewById(R.id.XYPlot);
+
+//        graphSeries(null, null);
 
         NormalAlphabet na = new NormalAlphabet();
         SAXProcessor sp = new SAXProcessor();
@@ -622,5 +635,49 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
             strokeType.setText("Forehand");
         }
         score.setText(rating.toString());
+    }
+
+    @Override
+    public void graphSeries(Double[] stroke, Double[] reference) {
+        final Number[] domainLabels = {1, 2, 3, 6, 7, 8, 9, 10, 13, 14};
+        Number[] series1Numbers = {1, 4, 2, 8, 4, 16, 8, 32, 16, 64};
+        Number[] series2Numbers = {5, 2, 10, 5, 20, 10, 40, 20, 80, 40};
+
+        XYSeries newStroke = new SimpleXYSeries(
+                Arrays.asList(series1Numbers), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "New Stroke");
+        XYSeries referenceStroke = new SimpleXYSeries(
+                Arrays.asList(series2Numbers), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Reference"
+        );
+
+        LineAndPointFormatter series1Format =
+                new LineAndPointFormatter(this, R.xml.line_point_formatter_with_labels);
+
+        LineAndPointFormatter series2Format =
+                new LineAndPointFormatter(this, R.xml.line_point_formatter_with_labels_2);
+
+        series2Format.getLinePaint().setPathEffect(new DashPathEffect(new float[]{
+
+                // always use DP when specifying pixel sizes, to keep things consistent across devices:
+                PixelUtils.dpToPix(20),
+                PixelUtils.dpToPix(15)}, 0));
+
+        series2Format.setInterpolationParams(
+                new CatmullRomInterpolator.Params(10, CatmullRomInterpolator.Type.Centripetal));
+
+        plot.addSeries(newStroke, series1Format);
+        plot.addSeries(referenceStroke, series2Format);
+
+        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).setFormat(new Format() {
+            @Override
+            public StringBuffer format(Object obj, StringBuffer toAppendTo, FieldPosition pos) {
+                int i = Math.round(((Number) obj).floatValue());
+                return toAppendTo.append(domainLabels[i]);
+            }
+
+            @Override
+            public Object parseObject(String source, ParsePosition pos) {
+                return null;
+            }
+        });
     }
 }
